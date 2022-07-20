@@ -8,11 +8,13 @@ import { SUBGRAPH_ENDPOINTS } from './src/subgraphEndpoints';
 import { syncGrantsTable } from './src/syncGrantsTable';
 import { syncGrantApplicationsTable } from './src/syncApplicationsTable';
 import { syncFundingTable } from './src/syncFundingTable';
+import cors from 'cors';
 
 dotenv.config();
 
 const app: Express = express();
 app.use(express.json())
+app.use(cors())
 const port = process.env.PORT;
 let syncTableInterval: NodeJS.Timer;
 
