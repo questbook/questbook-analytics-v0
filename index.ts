@@ -140,7 +140,7 @@ app.post('/workspace-analytics',async (req: Request, res: Response) => {
 
   console.log(repeatApplicants)
 
-  const 
+  // const 
 
   res.json({
     totalApplicants: totalApplicants,
