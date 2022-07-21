@@ -9,22 +9,12 @@ import { syncGrantsTable } from './src/syncGrantsTable';
 import { syncGrantApplicationsTable } from './src/syncApplicationsTable';
 import { syncFundingTable } from './src/syncFundingTable';
 import cors from 'cors';
-import fs from 'fs';
-import https from 'https';
-
 
 dotenv.config();
 
-var key = fs.readFileSync(__dirname + '/../selfsigned.key');
-var cert = fs.readFileSync(__dirname + '/../selfsigned.crt');
-var options = {
-  key: key,
-  cert: cert
-};
-
 const app: Express = express();
 app.use(express.json())
-app.use(cors())
+app.use(cors)
 const port = process.env.PORT;
 let syncTableInterval: NodeJS.Timer;
 
@@ -161,8 +151,6 @@ app.post('/workspace-analytics',async (req: Request, res: Response) => {
   })
 })
 
-
-var server = https.createServer(options, app);
-server.listen(port, () => {
+app.listen(port, () => {
   console.log('server started', port);
 });
