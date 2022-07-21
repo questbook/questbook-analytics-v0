@@ -9,8 +9,18 @@ import { syncGrantsTable } from './src/syncGrantsTable';
 import { syncGrantApplicationsTable } from './src/syncApplicationsTable';
 import { syncFundingTable } from './src/syncFundingTable';
 import cors from 'cors';
+import fs from 'fs';
+import https from 'https';
+
 
 dotenv.config();
+
+var key = fs.readFileSync(__dirname + '/../selfsigned.key');
+var cert = fs.readFileSync(__dirname + '/../selfsigned.crt');
+var options = {
+  key: key,
+  cert: cert
+};
 
 const app: Express = express();
 app.use(express.json())
@@ -151,6 +161,8 @@ app.post('/workspace-analytics',async (req: Request, res: Response) => {
   })
 })
 
-app.listen(port, () => {
+
+var server = https.createServer(options, app);
+server.listen(port, () => {
   console.log('server started', port);
 });

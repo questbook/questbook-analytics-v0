@@ -19,9 +19,19 @@ const syncWorkspacesTable_1 = require("./src/syncWorkspacesTable");
 const syncGrantsTable_1 = require("./src/syncGrantsTable");
 const syncApplicationsTable_1 = require("./src/syncApplicationsTable");
 const syncFundingTable_1 = require("./src/syncFundingTable");
+const cors_1 = __importDefault(require("cors"));
+const fs_1 = __importDefault(require("fs"));
+const https_1 = __importDefault(require("https"));
 dotenv_1.default.config();
+var key = fs_1.default.readFileSync(__dirname + '/../selfsigned.key');
+var cert = fs_1.default.readFileSync(__dirname + '/../selfsigned.crt');
+var options = {
+    key: key,
+    cert: cert
+};
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
+app.use((0, cors_1.default)());
 const port = process.env.PORT;
 let syncTableInterval;
 let sql;
@@ -117,12 +127,14 @@ app.post('/workspace-analytics', (req, res) => __awaiter(void 0, void 0, void 0,
     const [repeatApplicantsRow, ___] = yield sql.execute(repeatApplicantsQuery);
     const repeatApplicants = repeatApplicantsRow[0]['res'];
     console.log(repeatApplicants);
+    // const 
     res.json({
         totalApplicants: totalApplicants,
         uniqueApplicants: uniqueApplicants,
         repeatApplicants: repeatApplicants,
     });
 }));
-app.listen(port, () => {
+var server = https_1.default.createServer(options, app);
+server.listen(port, () => {
     console.log('server started', port);
 });
