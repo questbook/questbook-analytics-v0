@@ -150,7 +150,7 @@ app.post('/workspace-analytics',async (req: Request, res: Response) => {
   console.log(everydayApplications)
 
   const everydayFundingQuery = 
-    `select DATE(time) as fordate, sum(amount) as sumFund from (select * from funding where applicationId in (select applicationId from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId = ${chainId} ) && chainId = ${chainId}) as fundingForWorkspace group by DATE(time) order by fordate;`
+    `select fordate, sum(ss) as funding from (select fordate, e.asset, sumFund*conversionRate as ss from (select DATE(time) as fordate, asset, sum(amount) as sumFund from (select * from funding where applicationId in (select applicationId from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId = ${chainId} ) && chainId = ${chainId}) as fundingWorkspace group by asset, DATE(time) order by fordate) as e join conversions c on e.asset=c.asset) as re group by fordate;`
   ;
 
   const [everydayFundingRow, _____] = await sql!.execute(everydayFundingQuery)
