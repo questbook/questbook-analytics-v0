@@ -157,13 +157,20 @@ app.post('/workspace-analytics',async (req: Request, res: Response) => {
   const [everydayFundingRow, _____] = await sql!.execute(everydayFundingQuery)
   const everydayFunding = (everydayFundingRow as any[])
 
+  const grantsFundingQuery =
+    `select grantId, sum(amount*conversionRate) as funding from (select grantId, amount, asset from (select applicationId, w.grantId from grantApplications g join (select grantId, chainId from grants where chainId=${chainId} && workspaceId=\'${workspaceId}\') as w on g.grantId=w.grantId && g.chainId=w.chainId) as j join (select amount, asset, applicationId from funding where chainId=${chainId}) as f on j.applicationId=f.applicationId) as f join conversions c on f.asset=c.asset group by grantId; `
+  ;
+
+  const [grantsFundingRow, ______] = await sql!.execute(grantsFundingQuery)
+  const grantsFunding = (grantsFundingRow as any[])
 
   res.json({
     totalApplicants: totalApplicants,
     uniqueApplicants: uniqueApplicants,
     repeatApplicants: repeatApplicants,
     everydayApplications: everydayApplications,
-    everyFunding: everydayFunding,
+    everydayFunding: everydayFunding,
+    grantsFunding: grantsFunding,
   })
 })
 
