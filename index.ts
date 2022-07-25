@@ -12,9 +12,10 @@ import cors from 'cors';
 
 dotenv.config();
 
+
 const app: Express = express();
 app.use(express.json())
-app.use(cors)
+app.use(cors())
 const port = process.env.PORT;
 let syncTableInterval: NodeJS.Timer;
 
@@ -49,12 +50,9 @@ const syncTable =  async () => {
   }, 10*1000)
 }
 
-// app.get('/', (req: Request, res: Response) => {
-//   res.send('Hello World');
-//   sql.query('select * from chains', (err, results, fields) => {
-//     console.log(err, results, fields);
-//   });
-// });
+app.get('/', (req: Request, res: Response) => {
+  res.send('Hello World');
+});
 
 app.get('/workspaces', async (req: Request, res: Response) => {
   if (!sql) {
@@ -135,19 +133,36 @@ app.post('/workspace-analytics',async (req: Request, res: Response) => {
   console.log(uniqueApplicants)
 
   const repeatApplicantsQuery = 
-    `select count(*) as res from (select applicantAddress, count(*) from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId = ${chainId} group by applicantAddress having count(*) > 1) as applicants;`
+    `select count(*) as res from (select applicantAddress, count(*) from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId = ${chainId} group by applicantAddress having count(*) > 1) as applicants`
   ;
   const [repeatApplicantsRow, ___] = await sql!.execute(repeatApplicantsQuery)
   const repeatApplicants = (repeatApplicantsRow as any[])[0]['res']
 
   console.log(repeatApplicants)
 
-  // const 
+  const everydayApplicationsQuery = 
+    `select DATE(createdAt) as fordate, count(*) as numApps from (select * from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId = ${chainId}) as grantApplicationsForWorkspace group by DATE(createdAt) order by fordate`
+  ;
+
+  const [everydayApplicationsRow, ____] = await sql!.execute(everydayApplicationsQuery)
+  const everydayApplications = (everydayApplicationsRow as any[])
+
+  console.log(everydayApplications)
+
+  const everydayFundingQuery = 
+    `select DATE(time) as fordate, sum(amount) as sumFund from (select * from funding where applicationId in (select applicationId from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId = ${chainId} ) && chainId = ${chainId}) as fundingForWorkspace group by DATE(time) order by fordate;`
+  ;
+
+  const [everydayFundingRow, _____] = await sql!.execute(everydayFundingQuery)
+  const everydayFunding = (everydayFundingRow as any[])
+
 
   res.json({
     totalApplicants: totalApplicants,
     uniqueApplicants: uniqueApplicants,
     repeatApplicants: repeatApplicants,
+    everydayApplications: everydayApplications,
+    everyFunding: everydayFunding,
   })
 })
 

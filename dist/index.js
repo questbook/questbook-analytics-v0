@@ -20,15 +20,7 @@ const syncGrantsTable_1 = require("./src/syncGrantsTable");
 const syncApplicationsTable_1 = require("./src/syncApplicationsTable");
 const syncFundingTable_1 = require("./src/syncFundingTable");
 const cors_1 = __importDefault(require("cors"));
-const fs_1 = __importDefault(require("fs"));
-const https_1 = __importDefault(require("https"));
 dotenv_1.default.config();
-var key = fs_1.default.readFileSync(__dirname + '/../selfsigned.key');
-var cert = fs_1.default.readFileSync(__dirname + '/../selfsigned.crt');
-var options = {
-    key: key,
-    cert: cert
-};
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use((0, cors_1.default)());
@@ -123,18 +115,25 @@ app.post('/workspace-analytics', (req, res) => __awaiter(void 0, void 0, void 0,
     const [uniqueApplicantsRow, __] = yield sql.execute(uniqueApplicantsQuery);
     const uniqueApplicants = uniqueApplicantsRow[0]['res'];
     console.log(uniqueApplicants);
-    const repeatApplicantsQuery = `select count(*) as res from (select applicantAddress, count(*) from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId = ${chainId} group by applicantAddress having count(*) > 1) as applicants;`;
+    const repeatApplicantsQuery = `select count(*) as res from (select applicantAddress, count(*) from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId = ${chainId} group by applicantAddress having count(*) > 1) as applicants`;
     const [repeatApplicantsRow, ___] = yield sql.execute(repeatApplicantsQuery);
     const repeatApplicants = repeatApplicantsRow[0]['res'];
     console.log(repeatApplicants);
-    // const 
+    const everydayApplicationsQuery = `select DATE(createdAt) as fordate, count(*) as numApps from (select * from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId = ${chainId}) as grantApplicationsForWorkspace group by DATE(createdAt) order by fordate`;
+    const [everydayApplicationsRow, ____] = yield sql.execute(everydayApplicationsQuery);
+    const everydayApplications = everydayApplicationsRow;
+    console.log(everydayApplications);
+    const everydayFundingQuery = `select DATE(time) as fordate, sum(amount) as sumFund from (select * from funding where applicationId in (select applicationId from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId = ${chainId} ) && chainId = ${chainId}) as fundingForWorkspace group by DATE(time) order by fordate;`;
+    const [everydayFundingRow, _____] = yield sql.execute(everydayFundingQuery);
+    const everydayFunding = everydayFundingRow;
     res.json({
         totalApplicants: totalApplicants,
         uniqueApplicants: uniqueApplicants,
         repeatApplicants: repeatApplicants,
+        everydayApplications: everydayApplications,
+        everyFunding: everydayFunding,
     });
 }));
-var server = https_1.default.createServer(options, app);
-server.listen(port, () => {
+app.listen(port, () => {
     console.log('server started', port);
 });
