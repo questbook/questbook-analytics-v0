@@ -29,6 +29,7 @@ const setupSql = async () => {
     database: process.env.MYSQL_DB,
   };
   sql = await mysql.createConnection(mysqlConfig);
+  syncTableInterval = await syncTable()
 }
 
 setupSql()
