@@ -21,10 +21,10 @@ const endpoints = subgraphEndpoints_1.SUBGRAPH_ENDPOINTS;
 const syncGrantApplicationsTable = (sql) => __awaiter(void 0, void 0, void 0, function* () {
     const table = tables['grantApplications'];
     const defaultSkip = yield getUpdatedTillRows(sql, table.tableName);
-    // console.log(defaultSkip)
+    // console.log('defaultSkip', defaultSkip)
     const allGrantApplications = yield Promise.all(defaultSkip.map((element) => __awaiter(void 0, void 0, void 0, function* () {
         const grantApplications = yield getNewGrantApplicationsForChainFromSubgraph(element.chainId, element.skip);
-        // console.log(element.chainId, grants.length)
+        // console.log(element.chainId, grantApplications.length)
         if (grantApplications.length > 0) {
             yield insertNewGrantApplications(sql, element.chainId, grantApplications);
         }
@@ -54,6 +54,7 @@ const getNewGrantApplicationsForChainFromSubgraph = (chainId, defaultSkip = 0) =
                 skip
             }
         };
+        // console.log('running q', body)
         try {
             const result = yield axios_1.default.post(endpoint, body);
             if (((_c = (_b = result.data) === null || _b === void 0 ? void 0 : _b.data) === null || _c === void 0 ? void 0 : _c.grantApplications) && result.data.data.grantApplications.length > 0) {
@@ -68,7 +69,7 @@ const getNewGrantApplicationsForChainFromSubgraph = (chainId, defaultSkip = 0) =
             break;
         }
     }
-    // console.log(grantApplications)
+    //console.log('rec',grantApplications)
     return grantApplications;
 });
 const insertNewGrantApplications = (sql, chainId, grantApplications) => __awaiter(void 0, void 0, void 0, function* () {
@@ -76,11 +77,12 @@ const insertNewGrantApplications = (sql, chainId, grantApplications) => __awaite
         const createdAt = new Date(grantApplication.createdAtS * 1000).toISOString().slice(0, 19).replace('T', ' ');
         const updatedAt = new Date(grantApplication.updatedAtS * 1000).toISOString().slice(0, 19).replace('T', ' ');
         // console.log(grantApplication)
-        return `('${grantApplication.id}', '${grantApplication.applicantId}', '${createdAt}', '${updatedAt}', ${grantApplication.state === 'approved' ? 1 : 0}, '${grantApplication.grant.id}', ${chainId})`;
+        return `('${grantApplication.id}', '${grantApplication.applicantId}', '${createdAt}', '${updatedAt}', ${grantApplication.state === 'approved' ? 1 : 0}, '${grantApplication.grant.id}', ${chainId}, ${grantApplication.state === 'submitted' ? 1 : 0})`;
     });
     // console.log(insertString.join(','))
-    const [rows, fields] = yield sql.execute(`insert into grantApplications (applicationId, applicantAddress, createdAt, updatedAt, isAccepted, grantId, chainId) values ${insertString}`);
+    const [rows, fields] = yield sql.execute(`insert into grantApplications (applicationId, applicantAddress, createdAt, updatedAt, isAccepted, grantId, chainId, isPending) values ${insertString}`);
     // console.log('chain updated', chainId, rows)
     const [updatedRows, updatedFields] = yield sql.execute(`update syncedTill set skip = skip + ${grantApplications.length} where chainId=${chainId} && tableName='${tables['grantApplications'].tableName}'`);
+    // console.log('updated syncedtill for grantApplications',updatedRows)
     return true;
 });

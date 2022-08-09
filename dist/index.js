@@ -35,12 +35,34 @@ const setupSql = () => __awaiter(void 0, void 0, void 0, function* () {
         database: process.env.MYSQL_DB,
     };
     sql = yield promise_1.default.createConnection(mysqlConfig);
+    // syncTableInterval = await syncTable();
+    resetTable();
 });
 setupSql();
+const resetTable = () => __awaiter(void 0, void 0, void 0, function* () {
+    if (syncTableInterval) {
+        clearInterval(syncTableInterval);
+    }
+    const resetQuery = [
+        'delete from grants where true',
+        'delete from workspaces where true',
+        'delete from grantApplications where true',
+        'delete from funding where true',
+        'update syncedTill set skip = 0 where true',
+    ];
+    yield Promise.all(resetQuery.map((query) => sql.execute(query)));
+    console.log('starting syncing');
+    syncTableInterval = yield syncTable();
+    setTimeout(() => resetTable(), 10 * 60 * 1000);
+});
 const syncTable = () => __awaiter(void 0, void 0, void 0, function* () {
     if (!sql) {
         yield setupSql();
     }
+    (0, syncWorkspacesTable_1.syncWorkspacesTable)(sql);
+    (0, syncGrantsTable_1.syncGrantsTable)(sql);
+    (0, syncApplicationsTable_1.syncGrantApplicationsTable)(sql);
+    (0, syncFundingTable_1.syncFundingTable)(sql);
     return setInterval(() => {
         console.log('started sync', Date.now());
         // TODO
@@ -50,14 +72,11 @@ const syncTable = () => __awaiter(void 0, void 0, void 0, function* () {
         (0, syncGrantsTable_1.syncGrantsTable)(sql);
         (0, syncApplicationsTable_1.syncGrantApplicationsTable)(sql);
         (0, syncFundingTable_1.syncFundingTable)(sql);
-    }, 10 * 1000);
+    }, 1 * 60 * 1000);
 });
-// app.get('/', (req: Request, res: Response) => {
-//   res.send('Hello World');
-//   sql.query('select * from chains', (err, results, fields) => {
-//     console.log(err, results, fields);
-//   });
-// });
+app.get('/', (req, res) => {
+    res.send('Hello World');
+});
 app.get('/workspaces', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     if (!sql) {
         res.send('Connecting to DB');
@@ -77,6 +96,7 @@ app.get('/workspaces', (req, res) => __awaiter(void 0, void 0, void 0, function*
 }));
 app.post('/reset-tables', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const password = req.body.password;
+    // TODO password is in plaintext?!?
     if (password !== 'gocashless') {
         res.send('unauthorized');
         return;
@@ -85,11 +105,11 @@ app.post('/reset-tables', (req, res) => __awaiter(void 0, void 0, void 0, functi
         clearInterval(syncTableInterval);
     }
     const resetQuery = [
-        "delete from grants where true",
-        "delete from workspaces where true",
-        "delete from grantApplications where true",
-        "delete from funding where true",
-        "update syncedTill set skip = 0 where true"
+        'delete from grants where true',
+        'delete from workspaces where true',
+        'delete from grantApplications where true',
+        'delete from funding where true',
+        'update syncedTill set skip = 0 where true',
     ];
     yield Promise.all(resetQuery.map((query) => sql.execute(query)));
     console.log('starting syncing');
@@ -118,20 +138,41 @@ app.post('/workspace-analytics', (req, res) => __awaiter(void 0, void 0, void 0,
     const repeatApplicantsQuery = `select count(*) as res from (select applicantAddress, count(*) from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId = ${chainId} group by applicantAddress having count(*) > 1) as applicants`;
     const [repeatApplicantsRow, ___] = yield sql.execute(repeatApplicantsQuery);
     const repeatApplicants = repeatApplicantsRow[0]['res'];
-    console.log(repeatApplicants);
+    const winnerApplicantsQuery = `select count(*) as res from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId =  ${chainId};`;
+    const [winnerApplicantsRow, ____] = yield sql.execute(winnerApplicantsQuery);
+    const winnerApplicants = winnerApplicantsRow[0]['res'];
+    // console.log(repeatApplicants)
     const everydayApplicationsQuery = `select DATE(createdAt) as fordate, count(*) as numApps from (select * from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId = ${chainId}) as grantApplicationsForWorkspace group by DATE(createdAt) order by fordate`;
-    const [everydayApplicationsRow, ____] = yield sql.execute(everydayApplicationsQuery);
+    const [everydayApplicationsRow, _____] = yield sql.execute(everydayApplicationsQuery);
     const everydayApplications = everydayApplicationsRow;
     console.log(everydayApplications);
-    const everydayFundingQuery = `select DATE(time) as fordate, sum(amount) as sumFund from (select * from funding where applicationId in (select applicationId from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId = ${chainId} ) && chainId = ${chainId}) as fundingForWorkspace group by DATE(time) order by fordate;`;
-    const [everydayFundingRow, _____] = yield sql.execute(everydayFundingQuery);
+    const everydayFundingQuery = `select fordate, sum(ss) as funding from (select fordate, e.asset, sumFund*conversionRate as ss from (select DATE(time) as fordate, asset, sum(amount) as sumFund from (select * from funding where applicationId in (select applicationId from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId = ${chainId} ) && chainId = ${chainId}) as fundingWorkspace group by asset, DATE(time) order by fordate) as e join conversions c on e.asset=c.asset) as re group by fordate;`;
+    const [everydayFundingRow, ______] = yield sql.execute(everydayFundingQuery);
     const everydayFunding = everydayFundingRow;
+    // console.log(everydayFunding)
+    const grantsFundingQuery = `select grantId, sum(amount*conversionRate) as funding from (select grantId, amount, asset from (select applicationId, w.grantId from grantApplications g join (select grantId, chainId from grants where chainId=${chainId} && workspaceId=\'${workspaceId}\') as w on g.grantId=w.grantId && g.chainId=w.chainId) as j join (select amount, asset, applicationId from funding where chainId=${chainId}) as f on j.applicationId=f.applicationId) as f join conversions c on f.asset=c.asset group by grantId; `;
+    const [grantsFundingRow, _______] = yield sql.execute(grantsFundingQuery);
+    const grantsFunding = grantsFundingRow;
+    const grantsPendingQuery = `select count(isPending) as res, grantId from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId=\'${workspaceId}\') && isPending=1 && chainId = ${chainId} group by grantId;`;
+    const [grantsPendingRow, ________] = yield sql.execute(grantsPendingQuery);
+    const grantsPending = grantsPendingRow;
+    const grantsTatQuery = `select avg(timestampdiff(MINUTE, createdAt, time)) as res, grantId from (select min(time) as time, grantId, createdAt from (select grantId, g.applicationId, time, createdAt, fundingId from (select grantId, applicationId, createdAt from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId=\'${workspaceId}\') && chainId = ${chainId}) as g join (select time, fundingId, applicationId from funding) as f on g.applicationId=f.applicationId order by time asc) as m group by applicationId) as final group by grantId;`;
+    const [grantsTatRow, _________] = yield sql.execute(grantsTatQuery);
+    const grantsTat = grantsTatRow;
+    const tatQuery = `select avg(res) as res from (select avg(timestampdiff(MINUTE, createdAt, time)) as res, grantId from (select min(time) as time, grantId, createdAt from (select grantId, g.applicationId, time, createdAt, fundingId from (select grantId, applicationId, createdAt from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId=\'${workspaceId}\') && chainId = ${chainId}) as g join (select time, fundingId, applicationId from funding) as f on g.applicationId=f.applicationId order by time asc) as m group by applicationId) as final group by grantId) as ff;`;
+    const [tatRow, __________] = yield sql.execute(tatQuery);
+    const tat = tatRow[0]['res'];
     res.json({
         totalApplicants: totalApplicants,
         uniqueApplicants: uniqueApplicants,
         repeatApplicants: repeatApplicants,
+        winnerApplicants: winnerApplicants,
         everydayApplications: everydayApplications,
-        everyFunding: everydayFunding,
+        everydayFunding: everydayFunding,
+        grantsFunding: grantsFunding,
+        grantsPending: grantsPending,
+        grantsTat: grantsTat,
+        tat: tat,
     });
 }));
 app.listen(port, () => {

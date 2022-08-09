@@ -10,11 +10,11 @@ export const syncGrantApplicationsTable = async (sql: mysql.Connection) => {
   const table = tables['grantApplications']
 
   const defaultSkip = await getUpdatedTillRows(sql, table.tableName) as {chainId: number, skip: number}[]
-  // console.log(defaultSkip)
+  // console.log('defaultSkip', defaultSkip)
   
   const allGrantApplications = await Promise.all(defaultSkip.map(async (element) => {
     const grantApplications = await getNewGrantApplicationsForChainFromSubgraph(element.chainId, element.skip)
-    // console.log(element.chainId, grants.length)
+    // console.log(element.chainId, grantApplications.length)
     if (grantApplications.length > 0) {
       await insertNewGrantApplications(sql, element.chainId, grantApplications)
     }
@@ -46,6 +46,7 @@ const getNewGrantApplicationsForChainFromSubgraph = async (chainId: number, defa
         skip
       }
     };
+    // console.log('running q', body)
     try {
       const result = await axios.post(
         endpoint, 
@@ -61,8 +62,7 @@ const getNewGrantApplicationsForChainFromSubgraph = async (chainId: number, defa
       break
     }
   }
-
-  // console.log(grantApplications)
+   //console.log('rec',grantApplications)
   return grantApplications
 }
 
@@ -71,12 +71,14 @@ const insertNewGrantApplications = async (sql: mysql.Connection, chainId: number
     const createdAt = new Date(grantApplication.createdAtS*1000).toISOString().slice(0, 19).replace('T', ' ')
     const updatedAt = new Date(grantApplication.updatedAtS*1000).toISOString().slice(0, 19).replace('T', ' ')
     // console.log(grantApplication)
-    return `('${grantApplication.id}', '${grantApplication.applicantId}', '${createdAt}', '${updatedAt}', ${grantApplication.state === 'approved' ? 1 : 0}, '${grantApplication.grant.id}', ${chainId})`
+    return `('${grantApplication.id}', '${grantApplication.applicantId}', '${createdAt}', '${updatedAt}', ${grantApplication.state === 'approved' ? 1 : 0}, '${grantApplication.grant.id}', ${chainId}, ${grantApplication.state === 'submitted' ? 1 : 0})`
   }
   )
   // console.log(insertString.join(','))
-  const [rows, fields] = await sql.execute(`insert into grantApplications (applicationId, applicantAddress, createdAt, updatedAt, isAccepted, grantId, chainId) values ${insertString}`)
+  const [rows, fields] = await sql.execute(`insert into grantApplications (applicationId, applicantAddress, createdAt, updatedAt, isAccepted, grantId, chainId, isPending) values ${insertString}`)
   // console.log('chain updated', chainId, rows)
   const [updatedRows, updatedFields] = await sql.execute(`update syncedTill set skip = skip + ${grantApplications.length} where chainId=${chainId} && tableName='${tables['grantApplications'].tableName}'`)
+  
+  // console.log('updated syncedtill for grantApplications',updatedRows)
   return true
 }
