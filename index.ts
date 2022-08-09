@@ -162,7 +162,7 @@ app.post('/workspace-analytics', async (req: Request, res: Response) => {
   const [repeatApplicantsRow, ___] = await sql!.execute(repeatApplicantsQuery);
   const repeatApplicants = (repeatApplicantsRow as any[])[0]['res'];
 
-  const winnerApplicantsQuery = `select count(*) as res from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId =  ${chainId};`;
+  const winnerApplicantsQuery = `select count(*) as res from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId =  ${chainId} && isAccepted = 1;`;
   const [winnerApplicantsRow, ____] = await sql!.execute(winnerApplicantsQuery);
   const winnerApplicants = (winnerApplicantsRow as any[])[0]['res'];
 
