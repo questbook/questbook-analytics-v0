@@ -190,7 +190,7 @@ app.post('/workspace-analytics', async (req: Request, res: Response) => {
   const [grantsPendingRow, ________] = await sql!.execute(grantsPendingQuery);
   const grantsPending = grantsPendingRow as any[];
 
-  const grantsTatQuery = `select avg(res) as res, grantId from (select grantId, applicationId, createdAt, updatedAt, timestampdiff(MINUTE, createdAt, updatedAt) as res  from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId=\'${workspaceId}\') &&  chainId = ${chainId} && timestampdiff(MINUTE, createdAt, updatedAt) != 0) as final group by grantId;`;
+  const grantsTatQuery = `select avg(abs(res)) as res, grantId from (select grantId, applicationId, createdAt, updatedAt, timestampdiff(MINUTE, createdAt, updatedAt) as res  from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId=\'${workspaceId}\') &&  chainId = ${chainId} && timestampdiff(MINUTE, createdAt, updatedAt) != 0) as final group by grantId;`;
   const [grantsTatRow, _________] = await sql!.execute(grantsTatQuery);
   const grantsTat = grantsTatRow as any[];
 
