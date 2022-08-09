@@ -194,7 +194,7 @@ app.post('/workspace-analytics', async (req: Request, res: Response) => {
   const [grantsTatRow, _________] = await sql!.execute(grantsTatQuery);
   const grantsTat = grantsTatRow as any[];
 
-  const tatQuery = `select avg(res) as res from (select avg(timestampdiff(MINUTE, createdAt, time)) as res, grantId from (select min(time) as time, grantId, createdAt from (select grantId, g.applicationId, time, createdAt, fundingId from (select grantId, applicationId, createdAt from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId=\'${workspaceId}\') && chainId = ${chainId}) as g join (select time, fundingId, applicationId from funding) as f on g.applicationId=f.applicationId order by time asc) as m group by applicationId) as final group by grantId) as ff;`;
+  const tatQuery = `select avg(res) from (select avg(timestampdiff(MINUTE, createdAt, time)) as res, grantId from (select min(time) as time, grantId, createdAt from (select grantId, g.applicationId, time, createdAt, fundingId , g.chainId from (select grantId, applicationId, createdAt, chainId from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId=\'${workspaceId}\') && chainId = ${chainId}) as g join (select time, fundingId, applicationId, chainId from funding) as f on g.applicationId=f.applicationId && g.chainId=f.chainId order by time asc) as m group by applicationId) as final group by grantId) as ff;`;
   const [tatRow, __________] = await sql!.execute(tatQuery);
   const tat = (tatRow as any[])[0]['res'];
 
