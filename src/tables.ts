@@ -23,17 +23,15 @@ const TABLES: {[key: string]: TableData} = {
   grants: {
     tableName: 'grants',
     query: `
-      query grants($first: Int!, $skip: Int!) {
+      query grants($first: Int!, $skip: Int!, $workspace: String!) {
         grants(
           subgraphError: allow,
-          first: $first,
-          skip: $skip,
+          where: {
+            workspace: $workspace
+          }
         ) {
           id
           title
-          workspace {
-            id
-          }
         }
       }
     `,
