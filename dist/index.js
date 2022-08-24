@@ -138,7 +138,7 @@ app.post('/workspace-analytics', (req, res) => __awaiter(void 0, void 0, void 0,
     const repeatApplicantsQuery = `select count(*) as res from (select applicantAddress, count(*) from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId = ${chainId} group by applicantAddress having count(*) > 1) as applicants`;
     const [repeatApplicantsRow, ___] = yield sql.execute(repeatApplicantsQuery);
     const repeatApplicants = repeatApplicantsRow[0]['res'];
-    const winnerApplicantsQuery = `select count(*) as res from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId =  ${chainId};`;
+    const winnerApplicantsQuery = `select count(*) as res from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId =  ${chainId} && isAccepted = 1;`;
     const [winnerApplicantsRow, ____] = yield sql.execute(winnerApplicantsQuery);
     const winnerApplicants = winnerApplicantsRow[0]['res'];
     // console.log(repeatApplicants)
@@ -156,10 +156,10 @@ app.post('/workspace-analytics', (req, res) => __awaiter(void 0, void 0, void 0,
     const grantsPendingQuery = `select count(isPending) as res, grantId from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId=\'${workspaceId}\') && isPending=1 && chainId = ${chainId} group by grantId;`;
     const [grantsPendingRow, ________] = yield sql.execute(grantsPendingQuery);
     const grantsPending = grantsPendingRow;
-    const grantsTatQuery = `select avg(res) as res, grantId from (select grantId, applicationId, createdAt, updatedAt, timestampdiff(MINUTE, createdAt, updatedAt) as res  from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId=\'${workspaceId}\') &&  chainId = ${chainId} && timestampdiff(MINUTE, createdAt, updatedAt) != 0) as final group by grantId;`;
+    const grantsTatQuery = `select avg(abs(res)) as res, grantId from (select grantId, applicationId, createdAt, updatedAt, abs(timestampdiff(MINUTE, createdAt, updatedAt)) as res  from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId=\'${workspaceId}\') &&  chainId = ${chainId} && timestampdiff(MINUTE, createdAt, updatedAt) != 0) as final group by grantId;`;
     const [grantsTatRow, _________] = yield sql.execute(grantsTatQuery);
     const grantsTat = grantsTatRow;
-    const tatQuery = `select avg(res) as res from (select avg(timestampdiff(MINUTE, createdAt, time)) as res, grantId from (select min(time) as time, grantId, createdAt from (select grantId, g.applicationId, time, createdAt, fundingId from (select grantId, applicationId, createdAt from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId=\'${workspaceId}\') && chainId = ${chainId}) as g join (select time, fundingId, applicationId from funding) as f on g.applicationId=f.applicationId order by time asc) as m group by applicationId) as final group by grantId) as ff;`;
+    const tatQuery = `select avg(res) as res from (select avg(timestampdiff(MINUTE, createdAt, time)) as res, grantId from (select min(time) as time, grantId, createdAt from (select grantId, g.applicationId, time, createdAt, fundingId , g.chainId from (select grantId, applicationId, createdAt, chainId from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId=\'${workspaceId}\') && chainId = ${chainId}) as g join (select time, fundingId, applicationId, chainId from funding) as f on g.applicationId=f.applicationId && g.chainId=f.chainId order by time asc) as m group by applicationId) as final group by grantId) as ff;`;
     const [tatRow, __________] = yield sql.execute(tatQuery);
     const tat = tatRow[0]['res'];
     res.json({

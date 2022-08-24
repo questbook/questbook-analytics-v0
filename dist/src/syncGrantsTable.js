@@ -68,7 +68,7 @@ const getNewGrantsForChainFromSubgraph = (chainId, defaultSkip = 0) => __awaiter
             break;
         }
     }
-    // console.log(grants[0].workspace.id)
+    // console.log(grants[0]?.workspace?.id)
     return grants;
 });
 const insertNewGrants = (sql, chainId, grants) => __awaiter(void 0, void 0, void 0, function* () {

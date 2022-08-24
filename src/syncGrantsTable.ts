@@ -62,7 +62,7 @@ const getNewGrantsForChainFromSubgraph = async (chainId: number, defaultSkip = 0
     }
   }
 
-  // console.log(grants[0].workspace.id)
+  // console.log(grants[0]?.workspace?.id)
   return grants
 }
 
