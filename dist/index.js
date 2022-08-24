@@ -127,7 +127,7 @@ app.post('/workspace-analytics', (req, res) => __awaiter(void 0, void 0, void 0,
     console.log(req.body);
     const chainId = req.body.chainId;
     const workspaceId = req.body.workspaceId;
-    const totalApplicantsQuery = `select count(applicantAddress) as res from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\')`;
+    const totalApplicantsQuery = `select count(applicantAddress) as res from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId = ${chainId}`;
     const [totalApplicantsRow, _] = yield sql.execute(totalApplicantsQuery);
     const totalApplicants = totalApplicantsRow[0]['res'];
     console.log(totalApplicants);
@@ -173,6 +173,19 @@ app.post('/workspace-analytics', (req, res) => __awaiter(void 0, void 0, void 0,
         grantsPending: grantsPending,
         grantsTat: grantsTat,
         tat: tat,
+    });
+}));
+app.post('/analytics', (0, cors_1.default)(), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const fundingQuery = `select sum(amount), workspaceId, chainId, concat(workspaceId, '-', chainId) as groupkey from funding group by groupkey;`;
+    const [fundingRow, _] = yield sql.execute(fundingQuery);
+    const funding = fundingRow;
+    const appQuery = `select count(*), workspaceId, chainId, concat(workspaceId, '-', chainId) as groupkey from grantApplications group by groupkey;`;
+    const [appRow, __] = yield sql.execute(appQuery);
+    const applications = appRow;
+    console.log(funding);
+    res.json({
+        funding,
+        applications
     });
 }));
 app.listen(port, () => {

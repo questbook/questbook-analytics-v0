@@ -54,6 +54,9 @@ const TABLES: {[key: string]: TableData} = {
           state
           grant {
             id
+            workspace {
+              id
+            }
           }
         }
       }
@@ -77,6 +80,9 @@ const TABLES: {[key: string]: TableData} = {
           }
           amount
           grant {
+            workspace {
+              id
+            }
             reward {
               asset
             }

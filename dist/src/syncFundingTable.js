@@ -92,21 +92,27 @@ const insertNewFunding = (sql, chainId, funds) => __awaiter(void 0, void 0, void
         console.log(tokenValue, tokenInfo, fund.grant.reward.asset.toLowerCase(), chainId);
         let usdAmt = amount;
         try {
-            let v = yield (0, utils_1.calculateUSDValue)(tokenValue, tokenInfo.pair);
+            let v;
+            if (tokenInfo === null || tokenInfo === void 0 ? void 0 : tokenInfo.pair) {
+                v = yield (0, utils_1.calculateUSDValue)(tokenValue, tokenInfo.pair);
+            }
+            else {
+                v = tokenValue;
+            }
             // console.log('v', v);
             if (v !== 0) {
                 usdAmt = v.toString();
             }
         }
         catch (e) {
-            usdAmt = '0';
+            usdAmt = tokenValue.toString();
             console.log('error converting', e);
         }
         // console.log(amount);
-        return `('${fund.id}', '${fund.application.id}', ${amount}, '${fund.grant.reward.asset}', '${createdAt}', ${chainId})`;
+        return `('${fund.id}', '${fund.application.id}', ${amount}, '${fund.grant.reward.asset}', '${createdAt}', ${chainId}, '${fund.grant.workspace.id}')`;
     })));
     // console.log(insertString.join(','))
-    const [rows, fields] = yield sql.execute(`insert into funding (fundingId, applicationId, amount, asset, time, chainId) values ${insertString}`);
+    const [rows, fields] = yield sql.execute(`insert into funding (fundingId, applicationId, amount, asset, time, chainId, workspaceId) values ${insertString}`);
     // console.log('chain updated', chainId, rows)
     const [updatedRows, updatedFields] = yield sql.execute(`update syncedTill set skip = skip + ${funds.length} where chainId=${chainId} && tableName='${tables['funding'].tableName}'`);
     return true;

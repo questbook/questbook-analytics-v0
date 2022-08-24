@@ -135,18 +135,18 @@ const insertNewFunding = async (
           usdAmt = v.toString();
         }
       } catch (e) {
-        usdAmt = '0';
+        usdAmt = tokenValue.toString()
         console.log('error converting', e)
       }
 
       // console.log(amount);
 
-      return `('${fund.id}', '${fund.application.id}', ${amount}, '${fund.grant.reward.asset}', '${createdAt}', ${chainId})`;
+      return `('${fund.id}', '${fund.application.id}', ${amount}, '${fund.grant.reward.asset}', '${createdAt}', ${chainId}, '${fund.grant.workspace.id}')`;
     })
   );
   // console.log(insertString.join(','))
   const [rows, fields] = await sql.execute(
-    `insert into funding (fundingId, applicationId, amount, asset, time, chainId) values ${insertString}`
+    `insert into funding (fundingId, applicationId, amount, asset, time, chainId, workspaceId) values ${insertString}`
   );
   // console.log('chain updated', chainId, rows)
   const [updatedRows, updatedFields] = await sql.execute(

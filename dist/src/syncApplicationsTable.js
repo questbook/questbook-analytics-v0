@@ -77,10 +77,10 @@ const insertNewGrantApplications = (sql, chainId, grantApplications) => __awaite
         const createdAt = new Date(grantApplication.createdAtS * 1000).toISOString().slice(0, 19).replace('T', ' ');
         const updatedAt = new Date(grantApplication.updatedAtS * 1000).toISOString().slice(0, 19).replace('T', ' ');
         // console.log(grantApplication)
-        return `('${grantApplication.id}', '${grantApplication.applicantId}', '${createdAt}', '${updatedAt}', ${grantApplication.state === 'approved' ? 1 : 0}, '${grantApplication.grant.id}', ${chainId}, ${grantApplication.state === 'submitted' ? 1 : 0})`;
+        return `('${grantApplication.id}', '${grantApplication.applicantId}', '${createdAt}', '${updatedAt}', ${grantApplication.state === 'approved' ? 1 : 0}, '${grantApplication.grant.id}', ${chainId}, ${grantApplication.state === 'submitted' ? 1 : 0}, '${grantApplication.grant.workspace.id}')`;
     });
     // console.log(insertString.join(','))
-    const [rows, fields] = yield sql.execute(`insert into grantApplications (applicationId, applicantAddress, createdAt, updatedAt, isAccepted, grantId, chainId, isPending) values ${insertString}`);
+    const [rows, fields] = yield sql.execute(`insert into grantApplications (applicationId, applicantAddress, createdAt, updatedAt, isAccepted, grantId, chainId, isPending, workspaceId) values ${insertString}`);
     // console.log('chain updated', chainId, rows)
     const [updatedRows, updatedFields] = yield sql.execute(`update syncedTill set skip = skip + ${grantApplications.length} where chainId=${chainId} && tableName='${tables['grantApplications'].tableName}'`);
     // console.log('updated syncedtill for grantApplications',updatedRows)

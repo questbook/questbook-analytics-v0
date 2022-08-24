@@ -51,6 +51,9 @@ const TABLES = {
           state
           grant {
             id
+            workspace {
+              id
+            }
           }
         }
       }
@@ -74,6 +77,9 @@ const TABLES = {
           }
           amount
           grant {
+            workspace {
+              id
+            }
             reward {
               asset
             }

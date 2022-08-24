@@ -146,7 +146,7 @@ app.post('/workspace-analytics', async (req: Request, res: Response) => {
   const chainId = req.body.chainId;
   const workspaceId = req.body.workspaceId;
 
-  const totalApplicantsQuery = `select count(applicantAddress) as res from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\')`;
+  const totalApplicantsQuery = `select count(applicantAddress) as res from grantApplications where grantId in (select grantId from grants where chainId = ${chainId} && workspaceId = \'${workspaceId}\') && chainId = ${chainId}`;
   const [totalApplicantsRow, _] = await sql!.execute(totalApplicantsQuery);
   const totalApplicants = (totalApplicantsRow as any[])[0]['res'];
 
@@ -211,6 +211,23 @@ app.post('/workspace-analytics', async (req: Request, res: Response) => {
     tat: tat,
   });
 });
+
+app.post('/analytics', cors(), async (req: Request, res: Response) => {
+  const fundingQuery = `select sum(amount), workspaceId, chainId, concat(workspaceId, '-', chainId) as groupkey from funding group by groupkey;`;
+  const [fundingRow, _] = await sql!.execute(fundingQuery);
+  const funding = fundingRow as any[];
+
+  const appQuery = `select count(*), workspaceId, chainId, concat(workspaceId, '-', chainId) as groupkey from grantApplications group by groupkey;`;
+  const [appRow, __] = await sql!.execute(appQuery);
+  const applications = appRow as any[];
+
+  console.log(funding);
+
+  res.json({
+    funding,
+    applications
+  })
+})
 
 app.listen(port, () => {
   console.log('server started', port);
