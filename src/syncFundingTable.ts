@@ -123,7 +123,13 @@ const insertNewFunding = async (
 
       let usdAmt = amount;
       try {
-        let v = await calculateUSDValue(tokenValue, tokenInfo.pair!);
+        let v
+        if (tokenInfo?.pair) {
+          v = await calculateUSDValue(tokenValue, tokenInfo.pair!);
+        } else {
+          v = tokenValue
+        }
+       
         // console.log('v', v);
         if (v !== 0) {
           usdAmt = v.toString();
